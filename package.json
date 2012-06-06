@@ -1,0 +1,12 @@
+{
+  "name": "yobets",
+  "description": "You be the server!",
+  "version": "0.1.0",
+  "engines": {"node": ">= 0.6.0"},
+  "author": "kybernetikos@gmail.com",
+  "main": "./index.js",
+  "dependencies": {
+    "express": "2.x.x",
+    "ws": "0.4.x"
+  }
+}
