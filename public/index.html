@@ -1,5 +1,7 @@
 <html>
 <head>
+	<script type="text/javascript" src="stuff.js"></script>
+	<script type="text/javascript" src="YOBETServer.js"></script>
 </head>
 <body>
 
@@ -11,80 +13,48 @@ Click to establish a websocket connection and send some data:
 
 <script>
 var ws;
-
 var imgBlob;
-
-function getAsBlob(fileurl, callback) {
-	var xhr = new XMLHttpRequest();
-	xhr.open("GET", fileurl, true);
-	xhr.responseType = "blob";
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState == 4) {
-			callback(xhr.response);
-		}
-	}
-	xhr.send();
-}
 
 getAsBlob("sunset.jpg", function(b) {
 	imgBlob = b;
 });
 
-
-function handler(req, res) {
-  console.log("< ", req);
-	res.sendBlob(imgBlob);
+function logHandler(req, res, next) {
+	console.log("<" + JSON.stringify(req));
+	req.ondata = function(chunk) {console.log("X< ",chunk);};
+	req.onend = function() {console.log("ended");};
+	next();
 }
 
+function helloWorldHandler(req, res, next) {
+	res.contentType("text/html");
+	res.end("Hello World");
+}
+function imgHandler(req, res, next) {
+	res.sendBlob(imgBlob);
+}
+var server;
 function webconnect() {
-	ws = new WebSocket("ws://localhost:7272/websocket");
-  ws.onopen = function() {
-     console.log("Connected.");
-     console.log("> adam");
-     ws.send("adam");
-  };
-  ws.onmessage = function (evt) { 
-     var received_msg = evt.data;
-     var request = JSON.parse(received_msg);
-
-     var binaryData = null;
-     var resultingCalls = [];
-     
-     function makeMethod(obj, name) {
-    	 obj[name] = function() {resultingCalls.push([name, Array.prototype.slice.call(arguments)])};
-     }
-     var response = {};
-     makeMethod(response, "end");
-     makeMethod(response, "contentType");
-     response.sendBlob = function(blob) {
-       if (blob.type) response.contentType(blob.type);
-    	 binaryData = blob;
-     }
-     
-     handler(request, response);
-     ws.send(JSON.stringify(resultingCalls));
-     if (binaryData != null) {
-				ws.send(binaryData);
-     }
-  };
-  ws.onclose = function() { 
-     console.log("Disconnected."); 
-  };
+	server = new YOBETServer("adam");
+	server.use(logHandler);
+	server.use("/img", imgHandler);
+	server.use("/greet", helloWorldHandler);
 }
 
 function disconnect() {
-	ws.close(1000);
+	server.close();
 }
 
 function send() {
 	var xhr = new XMLHttpRequest();
-	xhr.open("POST", "/host/adam/fred?somequery=thistext");
+	xhr.open("POST", "/host/adam/query?somequery=thistext");
 	xhr.setRequestHeader("X-arbheader", "I'm awesome");
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == 4) {
 			console.log(xhr.responseText);
 		}
 	}
+	// has data in the body
 	xhr.send("BOOOM!");
 }
 
